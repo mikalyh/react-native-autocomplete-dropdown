@@ -1,3 +1,5 @@
+// Fix Bug Select Address from Address Book
+// Replace from node_modules/react-native-autocomplete-dropdown/src/index.js to this code below
 import debounce from 'lodash.debounce'
 import PropTypes from 'prop-types'
 import React, {
@@ -54,7 +56,10 @@ export const AutocompleteDropdown = memo(
 
     /** Set initial value */
     useEffect(() => {
-      if (!Array.isArray(dataSet) || selectedItem) {
+      if (
+        !Array.isArray(dataSet) ||
+        (selectedItem && selectedItem.id == props.initialValue)
+      ) {
         // nothing to set or already setted
         return
       }
@@ -72,7 +77,13 @@ export const AutocompleteDropdown = memo(
       if (dataSetItem) {
         setSelectedItem(dataSetItem)
       }
-    }, [])
+
+      if (props.autoFocus) {
+        setTimeout(() => {
+          setIsOpened(true)
+        }, 500)
+      }
+    }, [props.initialValue])
 
     /** expose controller methods */
     useEffect(() => {
@@ -137,7 +148,7 @@ export const AutocompleteDropdown = memo(
       const lowestPointOfDropdown =
         positionY + inputHeight + suggestionsListMaxHeight + bottomOffset
 
-      const direction = lowestPointOfDropdown < screenHeight ? 'down' : 'up'
+      const direction = 'down'
       setDirection(direction)
     }
 
@@ -245,8 +256,6 @@ export const AutocompleteDropdown = memo(
     const onClearPress = useCallback(() => {
       setSearchText('')
       setSelectedItem(null)
-      setIsOpened(false)
-      inputRef.current.blur()
       if (typeof props.onClear === 'function') {
         props.onClear()
       }
@@ -284,14 +293,17 @@ export const AutocompleteDropdown = memo(
       [dataSet, clearOnFocus, props.onFocus]
     )
 
-    const onBlur = useCallback((e) => {
-      if (props.closeOnBlur) {
-        close()
-      }
-      if (typeof props.onBlur === 'function') {
-        props.onBlur(e)
-      }
-    }, [props.closeOnBlur, props.onBlur])
+    const onBlur = useCallback(
+      (e) => {
+        if (props.closeOnBlur) {
+          close()
+        }
+        if (typeof props.onBlur === 'function') {
+          props.onBlur(e)
+        }
+      },
+      [props.closeOnBlur, props.onBlur]
+    )
 
     const onSubmit = useCallback(
       (e) => {
@@ -370,7 +382,9 @@ export const AutocompleteDropdown = memo(
                 <View>
                   {scrollContent.length > 0
                     ? scrollContent
-                    : !!searchText && <NothingFound />}
+                    : !!searchText && (
+                        <NothingFound emptyResultText={props.emptyResultText} />
+                      )}
                 </View>
               }
             </ScrollViewComponent>
@@ -391,6 +405,7 @@ AutocompleteDropdown.propTypes = {
   closeOnBlur: PropTypes.bool,
   closeOnSubmit: PropTypes.bool,
   clearOnFocus: PropTypes.bool,
+  autoFocus: PropTypes.bool,
   resetOnClose: PropTypes.bool,
   debounce: PropTypes.number,
   suggestionsListMaxHeight: PropTypes.number,
@@ -408,6 +423,7 @@ AutocompleteDropdown.propTypes = {
   ChevronIconComponent: PropTypes.element,
   ClearIconComponent: PropTypes.element,
   ScrollViewComponent: PropTypes.elementType,
+  emptyResultText: PropTypes.string,
 }
 
 const styles = ScaledSheet.create({
